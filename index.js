@@ -16,20 +16,29 @@ app.use('/proxy', createProxyMiddleware({
             body += chunk;
         });
 
-        // Al terminar la respuesta, manipula el HTML
+        // Al terminar la respuesta, manipula el HTML solo si el contenido es de tipo 'text/html'
         proxyRes.on('end', () => {
-            try {
-                const $ = cheerio.load(body);
+            const contentType = proxyRes.headers['content-type'];
 
-                // Eliminar anuncios
-                $('iframe[src*="ads"], script[src*="ads"], img[src*="ads"]').remove();
+            // Verifica si el contenido es HTML
+            if (contentType && contentType.includes('text/html')) {
+                try {
+                    const $ = cheerio.load(body);
 
-                // Responde con el HTML modificado
-                res.setHeader('Content-Type', 'text/html');
-                res.end($.html());
-            } catch (error) {
-                console.error('Error al procesar el HTML:', error);
-                res.status(500).send('Error al procesar el contenido');
+                    // Eliminar anuncios (ajustar esto según lo necesario)
+                    $('iframe[src*="ads"], script[src*="ads"], img[src*="ads"]').remove();
+
+                    // Responde con el HTML modificado
+                    res.setHeader('Content-Type', 'text/html');
+                    res.end($.html());
+                } catch (error) {
+                    console.error('Error al procesar el HTML:', error);
+                    res.status(500).send('Error al procesar el contenido HTML');
+                }
+            } else {
+                // Si no es HTML, simplemente pasa la respuesta tal como está (puede ser un video, imagen, etc.)
+                res.setHeader('Content-Type', contentType || 'application/octet-stream');
+                res.end(body);
             }
         });
     }
@@ -37,4 +46,3 @@ app.use('/proxy', createProxyMiddleware({
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Proxy corriendo en http://localhost:${port}`));
-
