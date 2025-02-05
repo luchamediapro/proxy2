@@ -19,18 +19,18 @@ app.use('/proxy', createProxyMiddleware({
         // Al finalizar la respuesta
         proxyRes.on('end', () => {
             const contentType = proxyRes.headers['content-type'];
-            console.log("Content-Type:", contentType);  // Log para ver qué tipo de contenido es
+            console.log("Content-Type:", contentType);  // Ver el tipo de contenido
 
-            // Si el contenido es HTML
+            // Si es HTML, procesamos y removemos anuncios
             if (contentType && contentType.includes('text/html')) {
                 try {
                     console.log('Procesando HTML...');
                     const $ = cheerio.load(body);
 
-                    // Eliminar anuncios (ajustar esto según lo necesario)
+                    // Eliminar anuncios (ajustar según sea necesario)
                     $('iframe[src*="ads"], script[src*="ads"], img[src*="ads"]').remove();
 
-                    // Responde con el HTML modificado
+                    // Devolver el HTML modificado
                     res.setHeader('Content-Type', 'text/html');
                     res.end($.html());
                 } catch (error) {
@@ -38,8 +38,8 @@ app.use('/proxy', createProxyMiddleware({
                     res.status(500).send('Error al procesar el contenido HTML');
                 }
             } else {
-                // Si es video o cualquier otro archivo binario, solo lo pasamos al cliente sin modificarlo
-                console.log('Contenido binario o no HTML, pasando al cliente...');
+                // Si es un archivo binario (video, imagen), lo pasamos sin modificar
+                console.log('Enviando contenido binario...');
                 res.setHeader('Content-Type', contentType || 'application/octet-stream');
                 res.end(body);
             }
@@ -49,4 +49,3 @@ app.use('/proxy', createProxyMiddleware({
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Proxy corriendo en http://localhost:${port}`));
-
