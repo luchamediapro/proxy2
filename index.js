@@ -11,17 +11,30 @@ app.use('/proxy', createProxyMiddleware({
     onProxyRes: function (proxyRes, req, res) {
         let body = '';
 
+        // Captura los datos de la respuesta
         proxyRes.on('data', chunk => {
             body += chunk;
         });
 
+        // Al terminar la respuesta, manipula el HTML
         proxyRes.on('end', () => {
-            const $ = cheerio.load(body);
-            $('iframe[src*="ads"], script[src*="ads"], img[src*="ads"]').remove();
-            res.setHeader('Content-Type', 'text/html');
-            res.end($.html());
+            try {
+                const $ = cheerio.load(body);
+
+                // Eliminar anuncios
+                $('iframe[src*="ads"], script[src*="ads"], img[src*="ads"]').remove();
+
+                // Responde con el HTML modificado
+                res.setHeader('Content-Type', 'text/html');
+                res.end($.html());
+            } catch (error) {
+                console.error('Error al procesar el HTML:', error);
+                res.status(500).send('Error al procesar el contenido');
+            }
         });
     }
 }));
 
-app.listen(3000, () => console.log('Proxy corriendo en http://localhost:3000'));
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`Proxy corriendo en http://localhost:${port}`));
+
