@@ -16,7 +16,7 @@ app.use('/proxy', createProxyMiddleware({
             body += chunk;
         });
 
-        // Al terminar la respuesta, manipula el HTML solo si el contenido es de tipo 'text/html'
+        // Al finalizar la respuesta
         proxyRes.on('end', () => {
             const contentType = proxyRes.headers['content-type'];
 
@@ -36,7 +36,7 @@ app.use('/proxy', createProxyMiddleware({
                     res.status(500).send('Error al procesar el contenido HTML');
                 }
             } else {
-                // Si no es HTML, simplemente pasa la respuesta tal como está (puede ser un video, imagen, etc.)
+                // Si no es HTML, simplemente pasa la respuesta tal como está (por ejemplo, video o imágenes)
                 res.setHeader('Content-Type', contentType || 'application/octet-stream');
                 res.end(body);
             }
