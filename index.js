@@ -19,10 +19,12 @@ app.use('/proxy', createProxyMiddleware({
         // Al finalizar la respuesta
         proxyRes.on('end', () => {
             const contentType = proxyRes.headers['content-type'];
+            console.log("Content-Type:", contentType);  // Log para ver qué tipo de contenido es
 
-            // Verifica si el contenido es HTML
+            // Si el contenido es HTML
             if (contentType && contentType.includes('text/html')) {
                 try {
+                    console.log('Procesando HTML...');
                     const $ = cheerio.load(body);
 
                     // Eliminar anuncios (ajustar esto según lo necesario)
@@ -36,7 +38,8 @@ app.use('/proxy', createProxyMiddleware({
                     res.status(500).send('Error al procesar el contenido HTML');
                 }
             } else {
-                // Si no es HTML, simplemente pasa la respuesta tal como está (por ejemplo, video o imágenes)
+                // Si es video o cualquier otro archivo binario, solo lo pasamos al cliente sin modificarlo
+                console.log('Contenido binario o no HTML, pasando al cliente...');
                 res.setHeader('Content-Type', contentType || 'application/octet-stream');
                 res.end(body);
             }
