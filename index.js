@@ -3,12 +3,32 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
 
-// Configura el proxy sin realizar ninguna modificación
 app.use('/proxy', createProxyMiddleware({
     target: 'https://tarjetarojaenvivo.lat', // URL de destino para el contenido del video
     changeOrigin: true, // Cambia el origen de la solicitud
     pathRewrite: { '^/proxy': '' }, // Elimina '/proxy' de la URL antes de enviarla
-    selfHandleResponse: false, // No proceses la respuesta manualmente (esto es clave)
+    selfHandleResponse: true, // Necesitamos manejar las respuestas
+    onProxyRes: (proxyRes, req, res) => {
+        let body = '';
+        
+        proxyRes.on('data', chunk => {
+            body += chunk;
+        });
+
+        proxyRes.on('end', () => {
+            // Filtro de publicidad: Buscar y eliminar elementos de publicidad (por ejemplo, iframe, scripts)
+            let modifiedBody = body;
+            if (body.includes('<iframe') || body.includes('<script')) {
+                // Eliminar iframes y scripts (puedes ajustar según necesites)
+                modifiedBody = modifiedBody.replace(/<iframe[^>]*>.*?<\/iframe>/g, ''); // Eliminar iframe
+                modifiedBody = modifiedBody.replace(/<script[^>]*>.*?<\/script>/g, ''); // Eliminar script
+            }
+
+            // Enviar la respuesta modificada al cliente
+            res.setHeader('Content-Type', 'text/html');
+            res.end(modifiedBody);
+        });
+    },
     onError: (err, req, res) => {
         console.error('Error en el proxy:', err);
         res.status(500).send('Error en el proxy');
