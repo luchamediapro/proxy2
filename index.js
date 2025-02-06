@@ -5,19 +5,22 @@ const app = express();
 
 app.use(cors());
 
+// Endpoint para extraer la URL del video (m3u8)
 app.get('/proxy/*', async (req, res) => {
-  const url = 'https://www.telextrema.com/' + req.params[0];
-  
+  const url = 'https://www.telextrema.com/' + req.params[0];  // URL de destino
+
   try {
     // Lanza Puppeteer para abrir la página y esperar a que el contenido cargue
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: 'domcontentloaded' });
 
     // Extrae la URL m3u8 utilizando Puppeteer
     const videoUrl = await page.evaluate(() => {
       // Aquí puedes ajustar el selector según la estructura de la página
-      const scriptContent = Array.from(document.querySelectorAll('script')).map(script => script.innerHTML).join('');
+      const scriptContent = Array.from(document.querySelectorAll('script'))
+        .map(script => script.innerHTML)
+        .join('');
       const regex = /https?:\/\/[^\s]+\.m3u8/g;
       const matches = scriptContent.match(regex);
       return matches ? matches[0] : null;
