@@ -4,10 +4,10 @@ const cheerio = require('cheerio');
 const app = express();
 
 app.use('/proxy', createProxyMiddleware({
-    target: 'https://tarjetarojaenvivo.lat',
-    changeOrigin: true,
-    pathRewrite: { '^/proxy': '' },
-    selfHandleResponse: true,
+    target: 'https://tarjetarojaenvivo.lat', // URL a la que deseas hacer proxy
+    changeOrigin: true, // Cambia el origen de la solicitud
+    pathRewrite: { '^/proxy': '' }, // Elimina el prefijo '/proxy' de las solicitudes
+    selfHandleResponse: true, // Necesario para manejar la respuesta por nosotros mismos
     onProxyRes: function (proxyRes, req, res) {
         let body = '';
 
@@ -21,21 +21,21 @@ app.use('/proxy', createProxyMiddleware({
             const contentType = proxyRes.headers['content-type'];
             console.log("Content-Type:", contentType);  // Ver el tipo de contenido
 
-            // Si el contenido es HTML, procesamos y modificamos solo el HTML
+            // Si el contenido es HTML, procesamos el HTML
             if (contentType && contentType.includes('text/html')) {
                 try {
                     console.log('Procesando HTML...');
+
+                    // Cargamos el HTML usando cheerio para modificarlo
                     const $ = cheerio.load(body);
 
-                    // Asegurémonos de que el contenido embed (iframe o video) no se altere
-                    // Si el contenido HTML tiene un iframe, lo dejamos tal cual
+                    // Evitar modificar el contenido del iframe (video embed)
                     $('iframe').each(function() {
-                        const src = $(this).attr('src');
-                        console.log('Iframe encontrado:', src);
-                        // Aquí podríamos agregar más lógica si queremos manejar específicamente ciertos iframes
+                        const iframeSrc = $(this).attr('src');
+                        console.log('Iframe encontrado:', iframeSrc);
                     });
 
-                    // Devolver el HTML sin modificar el iframe (sin ads)
+                    // Devolvemos el HTML sin alterar el contenido de los iframes
                     res.setHeader('Content-Type', 'text/html');
                     res.end($.html());
                 } catch (error) {
@@ -43,10 +43,10 @@ app.use('/proxy', createProxyMiddleware({
                     res.status(500).send('Error al procesar el contenido HTML');
                 }
             } else {
-                // Si es un archivo binario (video, imagen), lo pasamos sin modificar
-                console.log('Enviando contenido binario...');
+                // Si el contenido es binario (video, imágenes), lo devolvemos tal cual
+                console.log('Enviando contenido binario (video, imágenes)...');
                 res.setHeader('Content-Type', contentType || 'application/octet-stream');
-                res.end(body);
+                res.end(body, 'binary');
             }
         });
     }
