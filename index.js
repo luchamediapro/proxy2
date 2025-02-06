@@ -2,7 +2,7 @@ const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const app = express();
 
-// Configura el proxy para manejar la solicitud a través de '/proxy'
+// Configura el proxy
 app.use('/proxy', createProxyMiddleware({
     target: 'https://tarjetarojaenvivo.lat', // URL de destino para el contenido del video
     changeOrigin: true, // Cambia el origen de la solicitud
@@ -14,9 +14,14 @@ app.use('/proxy', createProxyMiddleware({
     }
 }));
 
-// Rutea a un HTML que incluye un iframe con la etiqueta sandbox
+// Configuración de la política de seguridad de contenido
+app.use((req, res, next) => {
+    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'none'; object-src 'none';");
+    next();
+});
+
+// Rutea a un HTML con iframe que utiliza el proxy
 app.get('/video', (req, res) => {
-    const videoUrl = 'https://tarjetarojaenvivo.lat/player/1/71'; // URL del video de destino
     const iframeHtml = `
         <html>
             <head>
