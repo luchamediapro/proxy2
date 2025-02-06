@@ -1,12 +1,20 @@
 {
-  "name": "mi-proyecto",
+  "name": "video-proxy",
   "version": "1.0.0",
+  "description": "Proxy para videos y bloqueo de publicidad",
   "main": "index.js",
-  "dependencies": {
-    "express": "^4.18.2",
-    "http-proxy-middleware": "^2.0.0"
-  },
   "scripts": {
     "start": "node index.js"
-  }
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "http-proxy-middleware": "^2.0.2",
+    "request": "^2.88.2"
+  },
+  "engines": {
+    "node": "14.x"
+  },
+  "author": "",
+  "license": "ISC"
 }
