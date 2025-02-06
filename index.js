@@ -13,13 +13,15 @@ app.get('/proxy/*', async (req, res) => {
       responseType: 'stream'  // Especifica que esperamos un stream (para contenido multimedia)
     });
 
+    console.log(`Estado de la respuesta: ${response.status}`); // Imprime el estado de la respuesta HTTP
+
     // Establecer encabezados de respuesta (ajusta el tipo según sea necesario)
     res.setHeader('Content-Type', 'video/mp4');  // Esto puede variar dependiendo del tipo de contenido
 
     // Pipe de la respuesta al cliente
     response.data.pipe(res); 
   } catch (error) {
-    console.error('Error al obtener el contenido:', error);
+    console.error('Error al obtener el contenido:', error);  // Muestra el error detallado
     res.status(500).send('Error al obtener el contenido.');
   }
 });
