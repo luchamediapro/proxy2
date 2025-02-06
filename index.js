@@ -1,6 +1,5 @@
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
-
 const app = express();
 
 app.use('/proxy', createProxyMiddleware({
@@ -10,16 +9,27 @@ app.use('/proxy', createProxyMiddleware({
     selfHandleResponse: true, // Necesitamos manejar las respuestas
     onProxyRes: (proxyRes, req, res) => {
         let body = '';
-        
+
+        // Filtramos las solicitudes de contenido no deseado (como anuncios)
         proxyRes.on('data', chunk => {
             body += chunk;
         });
 
         proxyRes.on('end', () => {
-            // Filtro de publicidad: Buscar y eliminar elementos de publicidad (por ejemplo, iframe, scripts)
+            // Evitamos modificar contenido binario (como videos) directamente
+            const contentType = proxyRes.headers['content-type'];
+
+            if (contentType && contentType.includes('video')) {
+                // Si el contenido es video, solo lo pasamos sin cambios
+                res.setHeader('Content-Type', contentType);
+                res.end(body);
+                return;
+            }
+
+            // Filtro de publicidad: Buscar y eliminar elementos de publicidad (iframe, script, etc.)
             let modifiedBody = body;
             if (body.includes('<iframe') || body.includes('<script')) {
-                // Eliminar iframes y scripts (puedes ajustar según necesites)
+                // Eliminar iframes y scripts
                 modifiedBody = modifiedBody.replace(/<iframe[^>]*>.*?<\/iframe>/g, ''); // Eliminar iframe
                 modifiedBody = modifiedBody.replace(/<script[^>]*>.*?<\/script>/g, ''); // Eliminar script
             }
