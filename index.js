@@ -14,6 +14,5 @@ app.use('/proxy', createProxyMiddleware({
         res.status(500).send('Error en el proxy');
     }
 }));
-g
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Proxy corriendo en http://localhost:${port}`));
