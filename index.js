@@ -6,29 +6,29 @@ app.use('/proxy', createProxyMiddleware({
     target: 'https://tarjetarojaenvivo.lat', // La URL de destino del contenido
     changeOrigin: true, // Cambiar el origen de la solicitud para que no se bloquee
     pathRewrite: { '^/proxy': '' }, // Reescribir la URL eliminando '/proxy'
-    selfHandleResponse: false, // No modificar la respuesta
+    selfHandleResponse: false, // No modificar la respuesta por defecto
     onProxyRes: (proxyRes, req, res) => {
-        // Verificamos si el contenido es un video
+        // Verificamos si el contenido es video o html
         const contentType = proxyRes.headers['content-type'];
 
-        // Si es video, simplemente lo enviamos tal cual
         if (contentType && contentType.includes('video')) {
+            // Si es video, pasamos el contenido tal cual
             res.setHeader('Content-Type', contentType);
-            proxyRes.pipe(res);  // Pasa el contenido directamente sin alterarlo
+            proxyRes.pipe(res);
         } else {
-            // Si no es un video, seguimos con el manejo de la respuesta
             let body = '';
             proxyRes.on('data', chunk => {
                 body += chunk;
             });
 
             proxyRes.on('end', () => {
-                // Aquí solo eliminamos los elementos no deseados en el contenido HTML
-                body = body.replace(/<iframe[^>]*>.*?<\/iframe>/g, ''); // Elimina iframes
-                body = body.replace(/<script[^>]*>.*?<\/script>/g, ''); // Elimina scripts de anuncios
+                // Si es HTML, eliminamos elementos relacionados con publicidad
+                body = body.replace(/<iframe[^>]*>.*?<\/iframe>/g, ''); // Eliminar iframe
+                body = body.replace(/<script[^>]*src=".*?ads.*?".*?<\/script>/g, ''); // Eliminar scripts de anuncios
+                body = body.replace(/<script[^>]*src=".*?advertisement.*?".*?<\/script>/g, ''); // Otra forma de bloquear anuncios
 
                 res.setHeader('Content-Type', 'text/html'); // Establecemos el tipo de contenido
-                res.end(body);  // Enviamos la respuesta modificada
+                res.end(body);  // Enviamos la respuesta filtrada
             });
         }
     },
