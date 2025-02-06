@@ -2,29 +2,38 @@ const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const app = express();
 
-// Configuración del proxy para interceptar las solicitudes
+// Configuración del proxy
 app.use('/proxy', createProxyMiddleware({
-  target: 'https://www.telextrema.com', // Asegúrate de que el dominio sea correcto
+  target: 'https://www.telextrema.com', // El dominio de destino
   changeOrigin: true,
   pathRewrite: {
     '^/proxy': '', // Elimina "/proxy" de la URL
   },
   onProxyReq: (proxyReq, req, res) => {
-    console.log(`Proxying request to: ${req.url}`);
+    console.log(`Proxy request to: ${req.url}`);
+    proxyReq.setHeader('User-Agent', 'Mozilla/5.0');
+    proxyReq.setHeader('Accept', 'video/mp4'); // Asegúrate de que el tipo de contenido es el correcto
+    proxyReq.setHeader('Accept-Encoding', 'gzip, deflate, br');
+    proxyReq.setHeader('Connection', 'keep-alive');
   },
   onProxyRes: (proxyRes, req, res) => {
-    // Aquí puedes revisar y modificar los encabezados si es necesario
     console.log(`Response from ${req.url}: ${proxyRes.statusCode}`);
-    proxyRes.headers['Content-Type'] = 'video/mp4'; // Ajusta según el tipo de contenido del video
+    
+    // Cambia las cabeceras para asegurar que el tipo de contenido es correcto
+    proxyRes.headers['Content-Type'] = 'video/mp4'; // Asigna el tipo de contenido adecuado
+
+    // Maneja las redirecciones si es necesario
+    if (proxyRes.statusCode === 301 || proxyRes.statusCode === 302) {
+      console.log('Redirigiendo a:', proxyRes.headers.location);
+    }
   },
-  selfHandleResponse: false, // Deja que el proxy maneje la respuesta
+  selfHandleResponse: false, // El proxy maneja la respuesta
   onError: (err, req, res) => {
     console.error('Error en el proxy:', err);
     res.status(500).send('Error en el proxy');
   }
 }));
 
-// Inicializa el servidor en el puerto correspondiente
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`Proxy corriendo en http://localhost:${port}`);
