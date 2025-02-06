@@ -1,32 +1,20 @@
 const express = require('express');
-const axios = require('axios');
+const { createProxyMiddleware } = require('http-proxy-middleware');
+
 const app = express();
+
+// Configura el proxy sin realizar ninguna modificación
+app.use('/proxy', createProxyMiddleware({
+    target: 'https://tarjetarojaenvivo.lat', // URL de destino para el contenido del video
+    changeOrigin: true, // Cambia el origen de la solicitud
+    pathRewrite: { '^/proxy': '' }, // Elimina '/proxy' de la URL antes de enviarla
+    selfHandleResponse: false, // No proceses la respuesta manualmente (esto es clave)
+    onError: (err, req, res) => {
+        console.error('Error en el proxy:', err);
+        res.status(500).send('Error en el proxy');
+    }
+}));
+
 const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`Proxy corriendo en http://localhost:${port}`));
 
-// Middleware para manejar la ruta '/proxy/*'
-app.get('/proxy/*', async (req, res) => {
-  const targetUrl = 'https://tarjetarojaenvivo.lat/player/' + req.params[0];
-  console.log(`Redirigiendo a: ${targetUrl}`);  // Verifica la URL que estás redirigiendo
-
-  try {
-    const response = await axios.get(targetUrl, {
-      responseType: 'stream'  // Especifica que esperamos un stream (para contenido multimedia)
-    });
-
-    console.log(`Estado de la respuesta: ${response.status}`); // Imprime el estado de la respuesta HTTP
-
-    // Establecer encabezados de respuesta (ajusta el tipo según sea necesario)
-    res.setHeader('Content-Type', 'video/mp4');  // Esto puede variar dependiendo del tipo de contenido
-
-    // Pipe de la respuesta al cliente
-    response.data.pipe(res); 
-  } catch (error) {
-    console.error('Error al obtener el contenido:', error);  // Muestra el error detallado
-    res.status(500).send('Error al obtener el contenido.');
-  }
-});
-
-// Iniciar el servidor
-app.listen(port, () => {
-  console.log(`El servidor está en ejecución en el puerto ${port}`);
-});
