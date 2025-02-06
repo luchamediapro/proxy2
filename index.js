@@ -21,16 +21,21 @@ app.use('/proxy', createProxyMiddleware({
             const contentType = proxyRes.headers['content-type'];
             console.log("Content-Type:", contentType);  // Ver el tipo de contenido
 
-            // Si es HTML, procesamos y removemos anuncios
+            // Si el contenido es HTML, procesamos y modificamos solo el HTML
             if (contentType && contentType.includes('text/html')) {
                 try {
                     console.log('Procesando HTML...');
                     const $ = cheerio.load(body);
 
-                    // Eliminar anuncios (ajustar según sea necesario)
-                    $('iframe[src*="ads"], script[src*="ads"], img[src*="ads"]').remove();
+                    // Asegurémonos de que el contenido embed (iframe o video) no se altere
+                    // Si el contenido HTML tiene un iframe, lo dejamos tal cual
+                    $('iframe').each(function() {
+                        const src = $(this).attr('src');
+                        console.log('Iframe encontrado:', src);
+                        // Aquí podríamos agregar más lógica si queremos manejar específicamente ciertos iframes
+                    });
 
-                    // Devolver el HTML modificado
+                    // Devolver el HTML sin modificar el iframe (sin ads)
                     res.setHeader('Content-Type', 'text/html');
                     res.end($.html());
                 } catch (error) {
