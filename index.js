@@ -3,41 +3,34 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const app = express();
 
 app.use('/proxy', createProxyMiddleware({
-    target: 'https://tarjetarojaenvivo.lat', // URL de destino para el contenido del video
-    changeOrigin: true, // Cambia el origen de la solicitud
-    pathRewrite: { '^/proxy': '' }, // Elimina '/proxy' de la URL antes de enviarla
-    selfHandleResponse: true, // Necesitamos manejar las respuestas
+    target: 'https://tarjetarojaenvivo.lat', // La URL de destino del contenido
+    changeOrigin: true, // Cambiar el origen de la solicitud para que no se bloquee
+    pathRewrite: { '^/proxy': '' }, // Reescribir la URL eliminando '/proxy'
+    selfHandleResponse: false, // No modificar la respuesta
     onProxyRes: (proxyRes, req, res) => {
-        let body = '';
+        // Verificamos si el contenido es un video
+        const contentType = proxyRes.headers['content-type'];
 
-        // Filtramos las solicitudes de contenido no deseado (como anuncios)
-        proxyRes.on('data', chunk => {
-            body += chunk;
-        });
+        // Si es video, simplemente lo enviamos tal cual
+        if (contentType && contentType.includes('video')) {
+            res.setHeader('Content-Type', contentType);
+            proxyRes.pipe(res);  // Pasa el contenido directamente sin alterarlo
+        } else {
+            // Si no es un video, seguimos con el manejo de la respuesta
+            let body = '';
+            proxyRes.on('data', chunk => {
+                body += chunk;
+            });
 
-        proxyRes.on('end', () => {
-            // Evitamos modificar contenido binario (como videos) directamente
-            const contentType = proxyRes.headers['content-type'];
+            proxyRes.on('end', () => {
+                // Aquí solo eliminamos los elementos no deseados en el contenido HTML
+                body = body.replace(/<iframe[^>]*>.*?<\/iframe>/g, ''); // Elimina iframes
+                body = body.replace(/<script[^>]*>.*?<\/script>/g, ''); // Elimina scripts de anuncios
 
-            if (contentType && contentType.includes('video')) {
-                // Si el contenido es video, solo lo pasamos sin cambios
-                res.setHeader('Content-Type', contentType);
-                res.end(body);
-                return;
-            }
-
-            // Filtro de publicidad: Buscar y eliminar elementos de publicidad (iframe, script, etc.)
-            let modifiedBody = body;
-            if (body.includes('<iframe') || body.includes('<script')) {
-                // Eliminar iframes y scripts
-                modifiedBody = modifiedBody.replace(/<iframe[^>]*>.*?<\/iframe>/g, ''); // Eliminar iframe
-                modifiedBody = modifiedBody.replace(/<script[^>]*>.*?<\/script>/g, ''); // Eliminar script
-            }
-
-            // Enviar la respuesta modificada al cliente
-            res.setHeader('Content-Type', 'text/html');
-            res.end(modifiedBody);
-        });
+                res.setHeader('Content-Type', 'text/html'); // Establecemos el tipo de contenido
+                res.end(body);  // Enviamos la respuesta modificada
+            });
+        }
     },
     onError: (err, req, res) => {
         console.error('Error en el proxy:', err);
