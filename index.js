@@ -1,37 +1,46 @@
 const express = require('express');
-const axios = require('axios');  // Usamos axios en lugar de request
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const axios = require('axios');
+const cheerio = require('cheerio');
 const cors = require('cors');
 
 const app = express();
-const port = process.env.PORT || 3000;
 
-// Habilitar CORS
-app.use(cors());
+app.use(cors());  // Permitir solicitudes CORS
 
-// Middleware para manejar la ruta '/proxy/*'
-app.get('/proxy/*', async (req, res) => {
-  try {
-    const targetUrl = 'https://www.telextrema.com/myr21Fs85fvd/foxsportspremium.php';
-    console.log(`Fetching content from: ${targetUrl}`);
-    
-    // Usamos axios para obtener los datos
-    const response = await axios.get(targetUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0'  // Para evitar bloqueos de User-Agent
-      }
-    });
-    
-    // Enviamos la respuesta al cliente
-    res.set('Content-Type', 'text/html');
-    res.send(response.data);  // Mandamos el HTML de la respuesta
-  } catch (err) {
-    console.error('Error en el proxy:', err);
-    res.status(500).send('Error en el proxy');
-  }
+// Configura la ruta que servirá el video
+app.get('/video', async (req, res) => {
+    try {
+        // URL del video
+        const url = 'https://www.telextrema.com/myr21Fs85fvd/foxsportspremium.php';
+
+        // Obtén el HTML de la página del video
+        const response = await axios.get(url);
+        const $ = cheerio.load(response.data);
+
+        // Extraer el iframe o el contenido necesario
+        const videoEmbedCode = $('iframe').attr('src');
+
+        if (videoEmbedCode) {
+            // Redirigir al iframe directamente
+            res.send(`
+                <html>
+                    <body>
+                        <iframe src="${videoEmbedCode}" width="800" height="600" frameborder="0" allowfullscreen></iframe>
+                    </body>
+                </html>
+            `);
+        } else {
+            res.status(404).send('Video no encontrado');
+        }
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Error al cargar el video');
+    }
 });
 
-// Iniciar el servidor
+// Inicia el servidor
+const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`Servidor corriendo en http://localhost:${port}`);
+    console.log(`Servidor corriendo en http://localhost:${port}`);
 });
