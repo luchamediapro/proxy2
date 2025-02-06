@@ -1,41 +1,25 @@
 const express = require('express');
-const axios = require('axios');
-const cors = require('cors');
-const cheerio = require('cheerio');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
 
-// Usar CORS
-app.use(cors());
-
-// Configuración del proxy para manejar la ruta de video
-app.get('/proxy/*', async (req, res) => {
-  const targetUrl = `https://www.telextrema.com/${req.params[0]}`;
-
-  try {
-    // Hacemos una solicitud al sitio de video usando Axios
-    const response = await axios.get(targetUrl);
-
-    // Procesamos el HTML usando Cheerio
-    const $ = cheerio.load(response.data);
-
-    // Aquí se puede ajustar el contenido, si necesitas extraer el enlace directo al video
-    // En este caso, buscamos el contenido del iframe o lo que sea necesario
-    const videoUrl = $('iframe').attr('src');  // Suponiendo que el video esté en un iframe
-
-    if (videoUrl) {
-      // Redirige al iframe de video
-      res.redirect(videoUrl);
-    } else {
-      res.status(404).send('No se pudo encontrar el video');
+// Configura el proxy para la ruta /proxy
+app.use('/proxy', createProxyMiddleware({
+    target: 'https://www.telextrema.com', // URL de destino donde se aloja el video
+    changeOrigin: true,
+    pathRewrite: { '^/proxy': '' }, // Elimina '/proxy' de la URL antes de enviarla
+    selfHandleResponse: false, // Deja que el proxy maneje la respuesta por sí mismo
+    onProxyReq: (proxyReq, req, res) => {
+        console.log(`Proxying request to: ${proxyReq.url}`); // Imprime la URL que está siendo redirigida
+    },
+    onError: (err, req, res) => {
+        console.error('Error en el proxy:', err); // Si ocurre un error, se imprime en la consola
+        res.status(500).send('Error en el proxy'); // Responde con error 500
     }
-  } catch (error) {
-    console.error('Error al procesar la URL:', error);
-    res.status(500).send('Hubo un error al intentar cargar el video.');
-  }
-});
+}));
 
+// Establece el puerto para el servidor
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`Servidor en http://localhost:${port}`);
+    console.log(`Servidor proxy corriendo en http://localhost:${port}`);
 });
