@@ -14,7 +14,7 @@ app.use('/proxy', createProxyMiddleware({
   },
   onProxyReq: (proxyReq, req, res) => {
     console.log(`Proxy request to: ${req.url}`);
-    
+    d
     // Agregar las cabeceras necesarias
     proxyReq.setHeader('User-Agent', 'Mozilla/5.0');
     proxyReq.setHeader('Accept', 'video/mp4'); // Establecer tipo de contenido correcto
