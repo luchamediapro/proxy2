@@ -1,34 +1,26 @@
 const express = require('express');
-const request = require('request');
+const axios = require('axios');
+
 const app = express();
+const port = process.env.PORT || 3000;
 
-// Middleware para manejar la ruta '/proxy/*'
-app.get('/proxy/*', (req, res) => {
-  const targetUrl = 'https://www.telextrema.com/myr21Fs85fvd/foxsportspremium.php'; // Aquí ponemos la URL que nos proporcionaste
-  console.log(`Redirigiendo a: ${targetUrl}`);
+app.get('/proxy/*', async (req, res) => {
+    const targetUrl = `https://tarjetarojaenvivo.lat/player/${req.params[0]}`;
+    console.log(`Redirigiendo a: ${targetUrl}`);
 
-  // Realizamos la solicitud al servidor original
-  request(targetUrl, (error, response, body) => {
-    if (error) {
-      res.status(500).send('Error en el proxy');
-      return;
+    try {
+        const response = await axios.get(targetUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            responseType: 'stream'
+        });
+
+        response.data.pipe(res);
+    } catch (error) {
+        console.error('Error en el proxy:', error);
+        res.status(500).send('Error al obtener el video');
     }
-
-    // Modificamos la respuesta antes de enviarla al cliente (si es necesario)
-    let modifiedBody = body;
-
-    // Aquí puedes aplicar modificaciones a `modifiedBody`, como:
-    // 1. Eliminar scripts de anuncios
-    // 2. Cambiar links a otros contenidos
-    // 3. Eliminar ciertos elementos HTML relacionados con anuncios
-
-    // Ejemplo de eliminar bloques de publicidad (si la estructura de HTML lo permite)
-    modifiedBody = modifiedBody.replace(/<div class="ads.*?<\/div>/g, ''); // Esto eliminaría los bloques con clase "ads"
-
-    // Finalmente, enviamos el contenido modificado
-    res.send(modifiedBody);
-  });
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Proxy corriendo en http://localhost:${port}`));
+app.listen(port, () => {
+    console.log(`Servidor corriendo en http://localhost:${port}`);
+});
