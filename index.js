@@ -1,34 +1,39 @@
 const express = require('express');
-const axios = require('axios');
-
+const { createProxyMiddleware } = require('http-proxy-middleware');
 const app = express();
-const port = process.env.PORT || 3000;
 
-app.get('/proxy/*', async (req, res) => {
-    const targetPath = req.params[0];
-    const targetUrl = `https://www.telextrema.com/${targetPath}`;
+const targetUrl = 'https://www.telextrema.com/myr21Fs85fvd/foxsportspremium.php'; // URL del video
 
-    console.log(`Accediendo a: ${targetUrl}`);
+// Proxy para evitar redirección y manejar la respuesta
+app.use('/proxy', createProxyMiddleware({
+    target: targetUrl, // URL de destino del video
+    changeOrigin: true, // Cambia el origen de la solicitud
+    pathRewrite: { '^/proxy': '' }, // Reescribe la ruta
+    selfHandleResponse: true, // No permite que el proxy maneje la respuesta automáticamente
+    onProxyRes: (proxyRes, req, res) => {
+        let data = '';
 
-    try {
-        const response = await axios.get(targetUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                'Referer': 'https://www.telextrema.com/',
-                'Origin': 'https://www.telextrema.com',
-                'Host': 'www.telextrema.com'
-            },
-            responseType: 'stream'
+        // Escucha los datos de la respuesta
+        proxyRes.on('data', chunk => {
+            data += chunk;
         });
 
-        res.set(response.headers);
-        response.data.pipe(res);
-    } catch (error) {
-        console.error('Error en el proxy:', error.message);
-        res.status(500).send('No se pudo obtener el contenido');
-    }
-});
+        // Cuando los datos son completamente recibidos
+        proxyRes.on('end', () => {
+            // Aquí puedes modificar la respuesta si es necesario
+            // Por ejemplo, podrías filtrar anuncios o cualquier otro contenido no deseado
 
+            // Finalmente, responde al cliente con los datos del video
+            res.send(data);
+        });
+    },
+    onError: (err, req, res) => {
+        console.error('Error en el proxy:', err);
+        res.status(500).send('Error en el proxy');
+    }
+}));
+
+const port = process.env.PORT || 3000;
 app.listen(port, () => {
     console.log(`Servidor corriendo en http://localhost:${port}`);
 });
