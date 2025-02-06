@@ -1,20 +1,36 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reproductor Video</title>
+    <title>Video Proxy</title>
 </head>
 <body>
-    <h1>Reproductor de Video</h1>
+    <h1>Video Proxy Example</h1>
+    <button id="getVideo">Obtener Video</button>
+    <video id="videoPlayer" width="800" controls>
+        <source id="videoSource" src="" type="application/x-mpegURL">
+        Tu navegador no soporta este formato.
+    </video>
 
-    <iframe 
-        src="pruebasenal.onrender.com:3000/proxy"
-        width="100%" 
-        height="500px" 
-        sandbox="allow-scripts allow-same-origin allow-popups"
-        frameborder="0">
-    </iframe>
-
+    <script>
+        document.getElementById('getVideo').addEventListener('click', function() {
+            fetch('http://localhost:3000/proxy/myr21Fs85fvd/foxsportspremium.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.videoUrl) {
+                        document.getElementById('videoSource').src = data.videoUrl;
+                        document.getElementById('videoPlayer').load();
+                        document.getElementById('videoPlayer').play();
+                    } else {
+                        alert('No se encontró la URL del video');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Hubo un error al cargar el video.');
+                });
+        });
+    </script>
 </body>
 </html>
