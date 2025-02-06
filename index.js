@@ -1,5 +1,6 @@
 const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
+const zlib = require('zlib');
 const iconv = require('iconv-lite');
 const app = express();
 
@@ -19,30 +20,31 @@ app.use('/proxy', createProxyMiddleware({
         proxyRes.on('end', () => {
             const contentType = proxyRes.headers['content-type'];
 
-            // Detectar si el contenido es HTML o tiene codificación
-            if (contentType && contentType.includes('html')) {
-                // Si el contenido está en un formato con codificación específica
-                let buffer = Buffer.from(body, 'binary');
-                let decodedBody = iconv.decode(buffer, 'utf-8'); // Asegúrate de usar la codificación correcta
+            // Comprobamos si la respuesta está comprimida
+            const encoding = proxyRes.headers['content-encoding'];
+            let decodedBody = body;
 
-                // Eliminar iframes y scripts relacionados con anuncios
-                decodedBody = decodedBody.replace(/<iframe[^>]*>.*?<\/iframe>/g, '');
-                decodedBody = decodedBody.replace(/<script[^>]*src=".*?ads.*?".*?<\/script>/g, '');
-                decodedBody = decodedBody.replace(/<script[^>]*src=".*?advertisement.*?".*?<\/script>/g, '');
-                decodedBody = decodedBody.replace(/<script[^>]*src=".*?track.*?".*?<\/script>/g, '');
-                decodedBody = decodedBody.replace(/<script[^>]*src=".*?banner.*?".*?<\/script>/g, '');
-
-                // Eliminar imágenes de anuncios
-                decodedBody = decodedBody.replace(/<img[^>]*src=".*?ads.*?".*?\/>/g, '');
-                decodedBody = decodedBody.replace(/<link[^>]*href=".*?ads.*?".*?\/>/g, '');
-
-                // Mandar la respuesta modificada
-                res.setHeader('Content-Type', 'text/html');
-                res.send(decodedBody);
+            if (encoding === 'gzip') {
+                zlib.gunzip(Buffer.from(body, 'binary'), (err, decodedBuffer) => {
+                    if (err) {
+                        res.status(500).send('Error al descomprimir el contenido');
+                        return;
+                    }
+                    decodedBody = decodedBuffer.toString('utf-8');
+                    processAndSendResponse(decodedBody, contentType, res);
+                });
+            } else if (encoding === 'br') {
+                zlib.brotliDecompress(Buffer.from(body, 'binary'), (err, decodedBuffer) => {
+                    if (err) {
+                        res.status(500).send('Error al descomprimir el contenido');
+                        return;
+                    }
+                    decodedBody = decodedBuffer.toString('utf-8');
+                    processAndSendResponse(decodedBody, contentType, res);
+                });
             } else {
-                // Si no es HTML, lo pasamos tal cual (por ejemplo, imágenes o videos)
-                res.setHeader('Content-Type', contentType);
-                res.send(body);
+                decodedBody = body; // No está comprimido, lo procesamos directamente
+                processAndSendResponse(decodedBody, contentType, res);
             }
         });
     },
@@ -52,7 +54,19 @@ app.use('/proxy', createProxyMiddleware({
     }
 }));
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-    console.log(`Proxy corriendo en http://localhost:${port}`);
-});
+// Función para procesar el contenido y enviarlo
+function processAndSendResponse(decodedBody, contentType, res) {
+    if (contentType && contentType.includes('html')) {
+        // Limpiar el HTML de anuncios
+        decodedBody = decodedBody.replace(/<iframe[^>]*>.*?<\/iframe>/g, '');
+        decodedBody = decodedBody.replace(/<script[^>]*src=".*?ads.*?".*?<\/script>/g, '');
+        decodedBody = decodedBody.replace(/<script[^>]*src=".*?advertisement.*?".*?<\/script>/g, '');
+        decodedBody = decodedBody.replace(/<script[^>]*src=".*?track.*?".*?<\/script>/g, '');
+        decodedBody = decodedBody.replace(/<script[^>]*src=".*?banner.*?".*?<\/script>/g, '');
+        decodedBody = decodedBody.replace(/<img[^>]*src=".*?ads.*?".*?\/>/g, '');
+        decodedBody = decodedBody.replace(/<link[^>]*href=".*?ads.*?".*?\/>/g, '');
+        
+        res.setHeader('Content-Type', 'text/html');
+        res.send(decodedBody);
+    } else {
+        // Si no es HTML, lo pasamos tal cual (por ejemplo, im
