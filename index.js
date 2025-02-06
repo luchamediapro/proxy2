@@ -2,32 +2,34 @@ const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const app = express();
 
-// Configuración del proxy
+const cors = require('cors'); // Para habilitar CORS
+app.use(cors());
+
+// Configura el proxy para la URL del video
 app.use('/proxy', createProxyMiddleware({
-  target: 'https://www.telextrema.com', // El dominio de destino
+  target: 'https://www.telextrema.com', // Cambia a la URL del video
   changeOrigin: true,
   pathRewrite: {
     '^/proxy': '', // Elimina "/proxy" de la URL
   },
   onProxyReq: (proxyReq, req, res) => {
     console.log(`Proxy request to: ${req.url}`);
+    
+    // Agregar las cabeceras necesarias
     proxyReq.setHeader('User-Agent', 'Mozilla/5.0');
-    proxyReq.setHeader('Accept', 'video/mp4'); // Asegúrate de que el tipo de contenido es el correcto
+    proxyReq.setHeader('Accept', 'video/mp4'); // Establecer tipo de contenido correcto
     proxyReq.setHeader('Accept-Encoding', 'gzip, deflate, br');
     proxyReq.setHeader('Connection', 'keep-alive');
+    proxyReq.setHeader('Referer', 'https://www.telextrema.com'); // Algunas páginas requieren esta cabecera
+    proxyReq.setHeader('Origin', 'https://www.telextrema.com');
   },
   onProxyRes: (proxyRes, req, res) => {
     console.log(`Response from ${req.url}: ${proxyRes.statusCode}`);
     
-    // Cambia las cabeceras para asegurar que el tipo de contenido es correcto
-    proxyRes.headers['Content-Type'] = 'video/mp4'; // Asigna el tipo de contenido adecuado
-
-    // Maneja las redirecciones si es necesario
-    if (proxyRes.statusCode === 301 || proxyRes.statusCode === 302) {
-      console.log('Redirigiendo a:', proxyRes.headers.location);
-    }
+    // Asegurarse de que el tipo de contenido sea correcto
+    proxyRes.headers['Content-Type'] = 'video/mp4'; // O el tipo de contenido adecuado
   },
-  selfHandleResponse: false, // El proxy maneja la respuesta
+  selfHandleResponse: false,
   onError: (err, req, res) => {
     console.error('Error en el proxy:', err);
     res.status(500).send('Error en el proxy');
