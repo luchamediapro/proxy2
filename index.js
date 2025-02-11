@@ -8,21 +8,22 @@ const PORT = process.env.PORT || 3000;
 // Habilitar CORS para permitir peticiones desde otros dominios
 app.use(cors());
 
-app.get('/proxy', async (req, res) => {
-    try {
-        const videoUrl = 'URL_DEL_VIDEO_EMBED'; // 🔴 Reemplázalo con la URL real del embed
+// Ruta que acepta la URL como parámetro
+app.get('/proxy2/*', async (req, res) => {
+    const videoUrl = decodeURIComponent(req.params[0]);  // Decodificar la URL que recibimos
 
+    try {
         const response = await fetch(videoUrl, {
             headers: {
-                'Referer': 'https://sitio-original.com', // 🔴 Cambia esto al sitio original del embed
-                'User-Agent': req.headers['user-agent'] // Mantiene el User-Agent del cliente
+                'Referer': 'https://www.telextrema.com',  // El sitio de referencia para que no bloquee
+                'User-Agent': req.headers['user-agent']  // Mantiene el User-Agent original
             }
         });
 
         const body = await response.text();
 
         // Opcional: Si el embed tiene enlaces internos bloqueados, puedes reemplazar su dominio
-        const modifiedBody = body.replace(/sitio-original\.com/g, 'tudominio.com');
+        const modifiedBody = body.replace(/telextrema\.com/g, 'tudominio.com');
 
         res.send(modifiedBody);
     } catch (error) {
