@@ -1,43 +1,18 @@
 const express = require('express');
-const puppeteer = require('puppeteer');
-const cors = require('cors');
+const fetch = require('node-fetch');
 const app = express();
 
-app.use(cors());
-
-// Endpoint para extraer la URL del video (m3u8)
-app.get('/proxy/*', async (req, res) => {
-  const url = 'https://www.telextrema.com/' + req.params[0];  // URL de destino
-
-  try {
-    // Lanza Puppeteer para abrir la página y esperar a que el contenido cargue
-    const browser = await puppeteer.launch({ headless: true });
-    const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'domcontentloaded' });
-
-    // Extrae la URL m3u8 utilizando Puppeteer
-    const videoUrl = await page.evaluate(() => {
-      // Aquí puedes ajustar el selector según la estructura de la página
-      const scriptContent = Array.from(document.querySelectorAll('script'))
-        .map(script => script.innerHTML)
-        .join('');
-      const regex = /https?:\/\/[^\s]+\.m3u8/g;
-      const matches = scriptContent.match(regex);
-      return matches ? matches[0] : null;
+app.get('/proxy', async (req, res) => {
+    const url = 'URL_DEL_VIDEO_EMBED';
+    const response = await fetch(url, {
+        headers: {
+            'Referer': 'https://sitio-original.com', // Simular el referer del sitio original
+            'User-Agent': req.headers['user-agent'] // Mantener el User-Agent original
+        }
     });
 
-    if (videoUrl) {
-      res.json({ videoUrl });
-    } else {
-      res.status(404).json({ error: 'm3u8 URL no encontrada' });
-    }
-
-    await browser.close();
-  } catch (error) {
-    console.error('Error al obtener el video:', error);
-    res.status(500).json({ error: 'Error al obtener el video' });
-  }
+    const body = await response.text();
+    res.send(body.replace(/sitio-original\.com/g, 'tudominio.com'));
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Server is running on http://localhost:${port}`));
+app.listen(3000, () => console.log('Proxy activo en puerto 3000'));
