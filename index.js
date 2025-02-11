@@ -1,12 +1,12 @@
 app.get('/proxy2/*', async (req, res) => {
-    const videoUrl = decodeURIComponent(req.params[0]);  // Decodificar la URL que recibimos
+    const videoUrl = decodeURIComponent(req.params[0]); 
 
     try {
         const response = await fetch(videoUrl, {
             headers: {
-                'Referer': 'https://www.telextrema.com',  // El sitio de referencia para que no bloquee
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',  // Cambia el User-Agent si es necesario
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',  // Acepta todos los tipos de contenido
+                'Referer': 'https://www.telextrema.com',  
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',  
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',  
                 'Accept-Encoding': 'gzip, deflate, br',
                 'Connection': 'keep-alive'
             }
